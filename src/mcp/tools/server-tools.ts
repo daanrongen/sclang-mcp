@@ -1,20 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Effect, type ManagedRuntime } from "effect";
-import type {
-  SclangEvalError,
-  SclangSpawnError,
-  SclangTimeoutError,
-  ServerNotRunningError,
-} from "../../domain/errors.ts";
+import { Effect } from "effect";
 import { SclangClient } from "../../domain/SclangClient.ts";
-import { formatError, formatSuccess } from "../utils.ts";
+import { runTool, type SclangRuntime } from "../utils.ts";
 
-type SclangErrors = SclangEvalError | SclangSpawnError | SclangTimeoutError | ServerNotRunningError;
-
-export const registerServerTools = (
-  server: McpServer,
-  runtime: ManagedRuntime.ManagedRuntime<SclangClient, SclangErrors>,
-) => {
+export const registerServerTools = (server: McpServer, runtime: SclangRuntime) => {
   server.tool(
     "boot",
     "Boot the SuperCollider audio server (scsynth) and wait until it is ready.",
@@ -26,16 +15,14 @@ export const registerServerTools = (
       idempotentHint: true,
       openWorldHint: true,
     },
-    async () => {
-      const result = await runtime.runPromiseExit(
+    () =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           return yield* client.boot();
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 
   server.tool(
@@ -49,16 +36,14 @@ export const registerServerTools = (
       idempotentHint: true,
       openWorldHint: true,
     },
-    async () => {
-      const result = await runtime.runPromiseExit(
+    () =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           return yield* client.serverStatus();
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 
   server.tool(
@@ -72,17 +57,15 @@ export const registerServerTools = (
       idempotentHint: true,
       openWorldHint: true,
     },
-    async () => {
-      const result = await runtime.runPromiseExit(
+    () =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           yield* client.freeAll();
           return { freed: true };
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 
   server.tool(
@@ -96,16 +79,14 @@ export const registerServerTools = (
       idempotentHint: true,
       openWorldHint: true,
     },
-    async () => {
-      const result = await runtime.runPromiseExit(
+    () =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           return yield* client.listSynthDefs();
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 
   server.tool(
@@ -119,15 +100,13 @@ export const registerServerTools = (
       idempotentHint: true,
       openWorldHint: true,
     },
-    async () => {
-      const result = await runtime.runPromiseExit(
+    () =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           return yield* client.nodeTree();
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 };
