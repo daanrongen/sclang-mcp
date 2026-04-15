@@ -15,7 +15,7 @@ export interface SclangClientService {
   readonly boot: () => Effect.Effect<ServerStatus, SclangSpawnError | EvalErrors>;
   readonly serverStatus: () => Effect.Effect<ServerStatus, ServerErrors>;
   readonly freeAll: () => Effect.Effect<void, ServerErrors>;
-  readonly loadFile: (path: string) => Effect.Effect<LoadResult, EvalErrors>;
+  readonly loadFile: (path: string) => Effect.Effect<LoadResult, ServerErrors>;
   readonly listSynthDefs: () => Effect.Effect<SynthDefInfo[], ServerErrors>;
   readonly nodeTree: () => Effect.Effect<NodeInfo, ServerErrors>;
 }
