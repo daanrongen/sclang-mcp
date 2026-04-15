@@ -1,0 +1,56 @@
+{
+  "name": "@daanrongen/sclang-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for SuperCollider — evaluate sclang code, boot scsynth, and inspect server state",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daanrongen/sclang-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "supercollider",
+    "sclang",
+    "scsynth",
+    "audio",
+    "synthesis",
+    "model-context-protocol",
+    "effect"
+  ],
+  "bin": {
+    "sclang-mcp": "./dist/main.js"
+  },
+  "main": "./dist/main.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "dev": "bun --watch src/main.ts",
+    "inspect": "DANGEROUSLY_OMIT_AUTH=true mcp-inspector bun dist/main.js",
+    "build": "bun build src/main.ts --outfile dist/main.js --target bun",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "test": "bun test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major",
+    "postversion": "git push --follow-tags"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "effect": "^3.13.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "bun-types": "latest",
+    "lefthook": "^2.1.4",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
