@@ -147,13 +147,15 @@ export const SclangClientLive = Layer.scoped(
           const pending = yield* Ref.get(pendingRef);
           if (pending === null) return;
 
-          for (const line of lines) {
+          for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+            const line = lines[lineIdx];
+            if (line === undefined) continue;
             if (line.startsWith("-> ")) {
               const resultValue = line.slice(3).trim();
               const evalResult = new EvalResult({
                 code: pending.code,
                 result: resultValue,
-                stdout: [...pending.stdoutLines, ...lines],
+                stdout: [...pending.stdoutLines, ...lines.slice(0, lineIdx)],
               });
               yield* Deferred.succeed(pending.deferred, evalResult);
               yield* Ref.set(pendingRef, null);
@@ -258,6 +260,7 @@ export const SclangClientLive = Layer.scoped(
 
       loadFile: (path) =>
         Effect.gen(function* () {
+          yield* requireBooted;
           const result = yield* evalCode(`"${path.replace(/"/g, '\\"')}".load`, DEFAULT_TIMEOUT_MS);
           return new LoadResult({ path, result: result.result });
         }),
