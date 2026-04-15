@@ -10,6 +10,13 @@ export const SclangClientTest = Layer.effect(
     const serverBooted = yield* Ref.make(false);
     const cannedEvals = yield* Ref.make<Map<string, string>>(new Map());
 
+    const requireBooted = Effect.gen(function* () {
+      const booted = yield* Ref.get(serverBooted);
+      if (!booted) {
+        return yield* Effect.fail(new ServerNotRunningError({ message: "SC server not booted" }));
+      }
+    });
+
     const mockEval = (code: string) =>
       Effect.gen(function* () {
         yield* Ref.update(evalLogRef, (log) => [...log, code]);
@@ -37,12 +44,7 @@ export const SclangClientTest = Layer.effect(
 
       serverStatus: () =>
         Effect.gen(function* () {
-          const booted = yield* Ref.get(serverBooted);
-          if (!booted) {
-            return yield* Effect.fail(
-              new ServerNotRunningError({ message: "SC server not booted" }),
-            );
-          }
+          yield* requireBooted;
           return new ServerStatus({
             running: true,
             numSynths: 0,
@@ -56,35 +58,20 @@ export const SclangClientTest = Layer.effect(
 
       freeAll: () =>
         Effect.gen(function* () {
-          const booted = yield* Ref.get(serverBooted);
-          if (!booted) {
-            return yield* Effect.fail(
-              new ServerNotRunningError({ message: "SC server not booted" }),
-            );
-          }
+          yield* requireBooted;
         }),
 
       loadFile: (path) => Effect.succeed(new LoadResult({ path, result: "nil" })),
 
       listSynthDefs: () =>
         Effect.gen(function* () {
-          const booted = yield* Ref.get(serverBooted);
-          if (!booted) {
-            return yield* Effect.fail(
-              new ServerNotRunningError({ message: "SC server not booted" }),
-            );
-          }
+          yield* requireBooted;
           return [new SynthDefInfo({ name: "default" })];
         }),
 
       nodeTree: () =>
         Effect.gen(function* () {
-          const booted = yield* Ref.get(serverBooted);
-          if (!booted) {
-            return yield* Effect.fail(
-              new ServerNotRunningError({ message: "SC server not booted" }),
-            );
-          }
+          yield* requireBooted;
           return new NodeInfo({
             id: 0,
             type: "group",

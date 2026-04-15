@@ -1,5 +1,20 @@
-import type { Cause } from "effect";
+import type { Cause, Effect, ManagedRuntime } from "effect";
 import { Cause as CauseModule } from "effect";
+import type {
+  SclangEvalError,
+  SclangSpawnError,
+  SclangTimeoutError,
+  ServerNotRunningError,
+} from "../domain/errors.ts";
+import type { SclangClient } from "../domain/SclangClient.ts";
+
+export type SclangErrors =
+  | SclangEvalError
+  | SclangSpawnError
+  | SclangTimeoutError
+  | ServerNotRunningError;
+
+export type SclangRuntime = ManagedRuntime.ManagedRuntime<SclangClient, SclangErrors>;
 
 export const formatSuccess = (data: unknown) => ({
   content: [
@@ -19,3 +34,12 @@ export const formatError = (cause: Cause.Cause<unknown>) => ({
   ],
   isError: true as const,
 });
+
+export const runTool = async <A>(
+  runtime: SclangRuntime,
+  effect: Effect.Effect<A, SclangErrors, SclangClient>,
+) => {
+  const result = await runtime.runPromiseExit(effect);
+  if (result._tag === "Failure") return formatError(result.cause);
+  return formatSuccess(result.value);
+};

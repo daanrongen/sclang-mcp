@@ -20,7 +20,7 @@ export class NodeInfo extends Schema.Class<NodeInfo>("NodeInfo")({
   id: Schema.Number,
   type: Schema.Literal("synth", "group"),
   name: Schema.optional(Schema.String),
-  children: Schema.optional(Schema.Array(Schema.Any)),
+  children: Schema.optional(Schema.Array(Schema.Unknown)),
 }) {}
 
 export class SynthDefInfo extends Schema.Class<SynthDefInfo>("SynthDefInfo")({

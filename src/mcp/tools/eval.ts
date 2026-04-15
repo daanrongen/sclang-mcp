@@ -1,21 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Effect, type ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { z } from "zod";
-import type {
-  SclangEvalError,
-  SclangSpawnError,
-  SclangTimeoutError,
-  ServerNotRunningError,
-} from "../../domain/errors.ts";
 import { SclangClient } from "../../domain/SclangClient.ts";
-import { formatError, formatSuccess } from "../utils.ts";
+import { runTool, type SclangRuntime } from "../utils.ts";
 
-type SclangErrors = SclangEvalError | SclangSpawnError | SclangTimeoutError | ServerNotRunningError;
-
-export const registerEvalTools = (
-  server: McpServer,
-  runtime: ManagedRuntime.ManagedRuntime<SclangClient, SclangErrors>,
-) => {
+export const registerEvalTools = (server: McpServer, runtime: SclangRuntime) => {
   server.tool(
     "eval",
     "Evaluate SuperCollider code in the running sclang interpreter and return the result.",
@@ -36,15 +25,13 @@ export const registerEvalTools = (
       idempotentHint: false,
       openWorldHint: true,
     },
-    async ({ code, timeoutMs }) => {
-      const result = await runtime.runPromiseExit(
+    ({ code, timeoutMs }) =>
+      runTool(
+        runtime,
         Effect.gen(function* () {
           const client = yield* SclangClient;
           return yield* client.eval(code, timeoutMs);
         }),
-      );
-      if (result._tag === "Failure") return formatError(result.cause);
-      return formatSuccess(result.value);
-    },
+      ),
   );
 };
