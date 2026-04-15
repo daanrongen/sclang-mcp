@@ -1,6 +1,6 @@
 {
   "name": "@daanrongen/sclang-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for SuperCollider — evaluate sclang code, boot scsynth, and inspect server state",
   "type": "module",
   "license": "MIT",
