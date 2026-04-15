@@ -27,6 +27,10 @@ export const SclangClientLive = Layer.scoped(
     const serverBooted = yield* Ref.make(false);
     const pendingRef = yield* Ref.make<PendingEval | null>(null);
     const stdoutBuf = yield* Ref.make("");
+    // Mutex: sclang is single-threaded and can only process one eval at a time.
+    // Serialising concurrent callers prevents pendingRef from being overwritten
+    // before the first caller's Deferred resolves.
+    const evalMutex = yield* Effect.makeSemaphore(1);
 
     const args: string[] = ["-i", "sclang-mcp"];
     if (Option.isSome(sclangConf)) {
@@ -111,7 +115,7 @@ export const SclangClientLive = Layer.scoped(
           Effect.tap(() => Ref.set(pendingRef, null)),
           Effect.tapError(() => Ref.set(pendingRef, null)),
         );
-      });
+      }).pipe(evalMutex.withPermits(1));
 
     const requireBooted = Effect.gen(function* () {
       const booted = yield* Ref.get(serverBooted);
