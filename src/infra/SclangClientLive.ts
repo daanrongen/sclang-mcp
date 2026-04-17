@@ -105,6 +105,10 @@ export const SclangClientLive = Layer.scoped(
     const serverBooted = yield* Ref.make(false);
     const pendingRef = yield* Ref.make<PendingEval | null>(null);
     const stdoutBuf = yield* Ref.make("");
+    // Resolves once sclang prints the welcome banner (class library fully loaded).
+    // evalCode waits for this before writing to stdin so we don't send code
+    // before sclang's interpreter loop is ready to read it.
+    const sclangReady = yield* Deferred.make<void, never>();
     // Mutex: sclang is single-threaded and can only process one eval at a time.
     // Serialising concurrent callers prevents pendingRef from being overwritten
     // before the first caller's Deferred resolves.
@@ -143,6 +147,12 @@ export const SclangClientLive = Layer.scoped(
           const lines = combined.split("\n");
           const incomplete = lines.pop() ?? "";
           yield* Ref.set(stdoutBuf, incomplete);
+
+          // Detect the welcome banner to signal sclang is ready for input.
+          const hasWelcome = lines.some((l) => l.includes("Welcome to SuperCollider"));
+          if (hasWelcome) {
+            yield* Deferred.succeed(sclangReady, undefined);
+          }
 
           const pending = yield* Ref.get(pendingRef);
           if (pending === null) return;
@@ -183,9 +193,23 @@ export const SclangClientLive = Layer.scoped(
 
     const evalCode = (code: string, timeoutMs: number) =>
       Effect.gen(function* () {
+        // Wait for sclang's interpreter loop to be ready (class library loaded).
+        yield* Deferred.await(sclangReady);
+
         const deferred = yield* Deferred.make<EvalResult, SclangEvalError | SclangTimeoutError>();
         yield* Ref.set(pendingRef, { deferred, code, stdoutLines: [] });
-        yield* Effect.sync(() => proc.stdin?.write(`${code}\x0c`));
+        yield* Effect.async<void, never>((resume) => {
+          if (!proc.stdin) {
+            resume(Effect.void);
+            return;
+          }
+          const flushed = proc.stdin.write(`${code}\x0c`, "utf8");
+          if (flushed) {
+            resume(Effect.void);
+          } else {
+            proc.stdin.once("drain", () => resume(Effect.void));
+          }
+        });
 
         return yield* Deferred.await(deferred).pipe(
           Effect.timeoutFail({
